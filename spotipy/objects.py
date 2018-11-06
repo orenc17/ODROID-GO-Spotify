@@ -54,13 +54,16 @@ class Image(object):
 
     def download(self):
         if self.url:
-            s = urequests.request('GET', self.url)
-            print('downloading image from {}'.format(self.url))
-            print('returned {}'.format(s.status_code))
-            with open('image.jpg', 'wb') as fh:
-                fh.write(s.content)
-                s.close()
-            return True
+            try:
+                s = urequests.request('GET', self.url)
+                # print('downloading image from {}'.format(self.url))
+                # print('returned {}'.format(s.status_code))
+                with open('image.jpg', 'wb') as fh:
+                    fh.write(s.content)
+                    s.close()
+                return True
+            except Exception as e:
+                print(e)
         return False
 
 
@@ -79,4 +82,3 @@ class Track(Item):
         self.artists = [Artist(**art) for art in kwargs['artists']]
         self.duration = kwargs['duration_ms']
         self.name = kwargs['name']
-        pass
