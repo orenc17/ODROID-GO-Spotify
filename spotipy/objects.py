@@ -62,8 +62,8 @@ class Image(object):
                     fh.write(s.content)
                     s.close()
                 return True
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(self.url)
         return False
 
 
