@@ -46,13 +46,14 @@ def setup():
     GO.lcd.clear()
     GO.lcd.image(GO.lcd.CENTER, GO.lcd.CENTER, 'splash.jpg', 0, GO.lcd.JPG)
     interface = do_connect()
-    token = util.prompt_for_user_token('',
+    token, cred_manager = util.prompt_for_user_token('',
                                        scope=SPOTIFY_SCOPE,
                                        client_id=SPOTIFY_CLIENT_ID,
                                        client_secret=SPOTIPY_CLIENT_SECRET,
                                        redirect_uri=SPOTIPY_REDIRECT_URI)
     assert token
-    return spotipy.Spotify(auth=token)
+    assert cred_manager
+    return spotipy.Spotify(client_credentials_manager=cred_manager)
 
 
 def main(sp):
