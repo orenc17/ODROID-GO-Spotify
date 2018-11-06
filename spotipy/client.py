@@ -72,7 +72,7 @@ class Spotify(object):
         if self._auth:
             return {'Authorization': 'Bearer {0}'.format(self._auth)}
         elif self.client_credentials_manager:
-            token = self.client_credentials_manager.get_access_token()
+            token = self.client_credentials_manager.get_cached_token()['access_token']
             return {'Authorization': 'Bearer {0}'.format(token)}
         else:
             return {}
