@@ -98,7 +98,7 @@ def main(sp):
                 # print(status)
                 new_track = Track(**status['item'])
                 if new_track != track:
-                    if new_track.album != track.album:
+                    if new_track.album != track.album or not has_art:
                         has_art = new_track.album.images[0].download()
 
                     track = new_track
