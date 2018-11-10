@@ -56,14 +56,12 @@ class Image(object):
         if self.url:
             try:
                 s = urequests.request('GET', self.url)
-                # print('downloading image from {}'.format(self.url))
-                # print('returned {}'.format(s.status_code))
                 with open('image.jpg', 'wb') as fh:
                     fh.write(s.content)
                     s.close()
                 return True
             except Exception:
-                print(self.url)
+                print("Failed to download %s" % self.url)
         return False
 
 
@@ -82,3 +80,8 @@ class Track(Item):
         self.artists = [Artist(**art) for art in kwargs['artists']]
         self.duration = kwargs['duration_ms']
         self.name = kwargs['name']
+
+    @property
+    def display_str(self):
+        return "{}\r\n\r\n{}\r\n\r\n{}".format(
+            self.artists[0].name, self.album.name, self.name)

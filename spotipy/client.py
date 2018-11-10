@@ -93,7 +93,7 @@ class Spotify(object):
         if self.trace_out:
             print(url)
 
-        r = self._session.request(method, url, headers=headers, data=data, json=None, timeout=self.requests_timeout)
+        r = self._session.request(method, url, headers=headers, data=data, json=None)
 
         r_text = r.text
         try:

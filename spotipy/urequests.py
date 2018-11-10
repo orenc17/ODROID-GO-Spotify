@@ -75,15 +75,16 @@ def request(method, url, data=None, json=None, headers=None, timeout=None):
             s.write(b"Host: %s\r\n" % host)
         # Iterate over keys to avoid tuple alloc
         for k in headers:
-            s.write(k)
+            s.write(b"%s" % k)
             s.write(b": ")
-            s.write(headers[k])
+            s.write(b"%s" % headers[k])
             s.write(b"\r\n")
         if json is not None:
             assert data is None
             data = ujson.dumps(json)
             s.write(b"Content-Type: application/json\r\n")
         else:
+            if method == "POST":
             s.write(b"Content-Type: application/x-www-form-urlencoded\r\n")
             s.write(b"Connection: close\r\n")
         if data:

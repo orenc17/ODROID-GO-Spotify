@@ -1,17 +1,18 @@
 import sys
 sys.path[1] = '/flash/lib'
 import network
+import machine
 import spotipy
 import utime
 import ujson
-import spotipy.util as util
-from spotipy.objects import *
 from odroid_go import GO
+from spotidisplay import SpotiDisplay
 
 # Spotify credentials
+
 SPOTIFY_CLIENT_ID = ''
 SPOTIPY_CLIENT_SECRET = ''
-SPOTIPY_REDIRECT_URI = 'http://esp8266.local/'
+SPOTIPY_REDIRECT_URI = 'http://esp8266.local/TEST'
 SPOTIFY_SCOPE = 'streaming user-read-playback-state user-read-currently-playing user-modify-playback-state'
 
 
@@ -31,86 +32,73 @@ def do_connect():
     return wlan
 
 
-def update_display(trk, has_art):
-    text_to_display = "{}\r\n\r\n{}\r\n\r\n{}".format(trk.artists[0].name,
-                                                      trk.album.name,
-                                                      trk.name)
-    GO.lcd.clear()
-    GO.lcd.font(GO.lcd.FONT_DejaVu18, color=GO.lcd.GREEN)
-    if has_art:
-        GO.lcd.image(GO.lcd.RIGHT, GO.lcd.BOTTOM, 'image.jpg', 2, GO.lcd.JPG)
-        GO.lcd.text(0, 0, text_to_display)
-    else:
-        GO.lcd.text(GO.lcd.CENTER, GO.lcd.CENTER, text_to_display)
+def sync_time():
+    rtc = machine.RTC()
+    rtc.ntp_sync(server="hr.pool.ntp.org")
+    while not rtc.synced():
+        continue
 
-
-def update_status(sp, curr_track, has_art):
-    status = sp.current_playback()
-    if status:
-        device = Device(**status['device'])
-        new_track = Track(**status['item'])
-        if new_track != curr_track:
-            if curr_track is None or new_track.album != curr_track.album or not has_art:
-                has_art = new_track.album.images[0].download()
-            update_display(new_track, has_art)
-        return new_track, has_art, device
-    return None, False, None
+    print(utime.strftime("%a, %d %b %Y %H:%M:%S +0000", utime.localtime()))
 
 
 def setup():
     GO.lcd.clear()
     GO.lcd.image(GO.lcd.CENTER, GO.lcd.CENTER, 'splash.jpg', 0, GO.lcd.JPG)
     do_connect()
-    token, cred_manager = util.prompt_for_user_token('',
-                                                     scope=SPOTIFY_SCOPE,
-                                                     client_id=SPOTIFY_CLIENT_ID,
-                                                     client_secret=SPOTIPY_CLIENT_SECRET,
-                                                     redirect_uri=SPOTIPY_REDIRECT_URI)
+    sync_time()
+    token, cred_manager = spotipy.prompt_for_user_token(client_id=SPOTIFY_CLIENT_ID,
+                                                        client_secret=SPOTIPY_CLIENT_SECRET,
+                                                        redirect_uri=SPOTIPY_REDIRECT_URI,
+                                                        scope=SPOTIFY_SCOPE)
+
     assert token
     assert cred_manager
     return spotipy.Spotify(client_credentials_manager=cred_manager)
 
 
 def main(sp):
-    track, has_art, device = update_status(sp, None, False)
+    display = SpotiDisplay(sp)
     last_update_time = utime.ticks_ms()
-    update_display(track, has_art)
 
     while True:
         utime.sleep_ms(500)
         GO.update()
-        if device:
+        if display.device:
             if GO.btn_joy_y.was_axis_pressed() == 2:
                 # print('pressed up')
-                device.vol_increase(sp)
+                display.device.vol_increase(sp)
                 continue
             if GO.btn_joy_y.was_axis_pressed() == 1:
                 # print('pressed down')
-                device.vol_decrease(sp)
+                display.device.vol_decrease(sp)
                 continue
             if GO.btn_joy_x.was_axis_pressed() == 2:
                 # print('pressed right')
-                device.previous_track(sp)
-                track, has_art, device = update_status(sp, track, has_art)
+                display.device.previous_track(sp)
+                display.update()
                 continue
             if GO.btn_joy_x.was_axis_pressed() == 1:
                 # print('pressed left')
-                device.next_track(sp)
-                track, has_art, device = update_status(sp, track, has_art)
+                display.device.next_track(sp)
+                display.update()
                 continue
             if GO.btn_a.was_pressed() == 1:
-                sp.pause_playback(device.id)
+                sp.pause_playback(display.device.id)
                 continue
             if GO.btn_b.was_pressed() == 1:
-                sp.start_playback(device.id)
-                track, has_art, device = update_status(sp, track, has_art)
+                sp.start_playback(display.device.id)
+                display.update()
                 continue
 
         if utime.ticks_ms() - last_update_time > 5000:
             last_update_time = utime.ticks_ms()
-            track, has_art, device = update_status(sp, track, has_art)
+            display.update()
 
 
 if __name__ == "__main__":
     obj = setup()
     main(obj)
+
+# Setup button
+# a = Pin(32, Pin.IN, Pin.PULL_UP, handler=irq, debounce=500, trigger=Pin.IRQ_RISING, acttime=500)
+# a = Pin(34, Pin.IN, handler=irq, debounce=0, trigger=Pin.IRQ_RISING, acttime=0)

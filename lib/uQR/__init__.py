@@ -1,0 +1,1 @@
+from .uQR import QRCode

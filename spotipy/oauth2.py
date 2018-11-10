@@ -2,8 +2,8 @@ import os
 import json
 import time
 import sys
-from . import urllibparse
-from . import base64
+import urllibparse
+from base64 import b64encode
 from . import urequests
 
 IOError = OSError
@@ -14,7 +14,7 @@ class SpotifyOauthError(Exception):
 
 
 def _make_authorization_headers(client_id, client_secret):
-    auth_header = base64.b64encode(str(client_id + ':' + client_secret).encode('ascii'))
+    auth_header = b64encode(str(client_id + ':' + client_secret).encode('ascii'))
     return {'Authorization': 'Basic %s' % auth_header.decode('ascii')}
 
 
@@ -188,6 +188,10 @@ class SpotifyOAuth(object):
         try:
             return url.split("?code=")[1].split("&")[0]
         except IndexError:
+            pass
+        try:
+            return url.split("code=")[1].split("&")[0]
+        except IndexError:
             return None
 
     def _make_authorization_headers(self):
@@ -211,7 +215,6 @@ class SpotifyOAuth(object):
 
         headers = self._make_authorization_headers()
         dumped_data = urllibparse.urlencode(payload, doseq=True)
-
         response = urequests.post(self.OAUTH_TOKEN_URL, data=dumped_data, headers=headers, json=None)
         if response.status_code != 200:
             raise SpotifyOauthError(response.reason)
