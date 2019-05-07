@@ -11,20 +11,19 @@ class SpotiDisplay(object):
         self._displaying_art = False
         self.device = None
         self.track = None
-        self._has_art = False
 
         GO.lcd.clear()
         self._print_text()
-        self.update()
 
     def _print_text(self):
         GO.lcd.font(GO.lcd.FONT_DejaVu18, color=GO.lcd.GREEN, transparent=True)
         GO.lcd.text(self._text_x, self._text_y, self.text)
 
-    def _render_new_album_art(self):
+    def _render_new_album_art(self, trk):
         GO.lcd.clear()
+        self._update_song_details(trk)
         GO.lcd.image(GO.lcd.RIGHT, GO.lcd.BOTTOM,
-                     self.track.album.images[0].path,
+                     trk.album.images[0].path,
                      2, GO.lcd.JPG)
         self._displaying_art = True
 
@@ -49,10 +48,11 @@ class SpotiDisplay(object):
             new_track = Track(**status['item'])
             if new_track != self.track:
                 if self._need_to_change_art(new_track):
-                    self._render_new_album_art()
-                self._update_song_details(new_track)
+                    self._render_new_album_art(new_track)
+                else:
+                    self._update_song_details(new_track)
                 self.track = new_track
             else:
                 if not self._displaying_art and self.track.album.images[0].download():
-                    self._render_new_album_art()
+                    self._render_new_album_art(self.track)
 
