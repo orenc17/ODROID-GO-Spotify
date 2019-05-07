@@ -85,8 +85,8 @@ def request(method, url, data=None, json=None, headers=None, timeout=None):
             s.write(b"Content-Type: application/json\r\n")
         else:
             if method == "POST":
-            s.write(b"Content-Type: application/x-www-form-urlencoded\r\n")
-            s.write(b"Connection: close\r\n")
+                s.write(b"Content-Type: application/x-www-form-urlencoded\r\n")
+                s.write(b"Connection: close\r\n")
         if data:
             s.write(b"Content-Length: %d\r\n" % len(data))
         else:

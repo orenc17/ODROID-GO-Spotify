@@ -5,6 +5,7 @@ import machine
 import spotipy
 import utime
 import ujson
+import uos
 from odroid_go import GO
 from spotidisplay import SpotiDisplay
 
@@ -17,7 +18,7 @@ SPOTIFY_SCOPE = 'streaming user-read-playback-state user-read-currently-playing 
 
 
 def do_connect():
-    with open('wifi_db.json', 'r') as fp:
+    with open('/sd/wifi_db.json', 'r') as fp:
         db = ujson.load(fp)
 
     wlan = network.WLAN(network.STA_IF)
@@ -41,9 +42,16 @@ def sync_time():
     print(utime.strftime("%a, %d %b %Y %H:%M:%S +0000", utime.localtime()))
 
 
+def init_sd():
+    uos.mountsd(True)
+    if 'spotify_cache' not in uos.listdir('/sd'):
+        uos.mkdir('/sd/spotify_cache')
+
+
 def setup():
     GO.lcd.clear()
     GO.lcd.image(GO.lcd.CENTER, GO.lcd.CENTER, 'splash.jpg', 0, GO.lcd.JPG)
+    init_sd()
     do_connect()
     sync_time()
     token, cred_manager = spotipy.prompt_for_user_token(client_id=SPOTIFY_CLIENT_ID,
@@ -102,3 +110,5 @@ if __name__ == "__main__":
 # Setup button
 # a = Pin(32, Pin.IN, Pin.PULL_UP, handler=irq, debounce=500, trigger=Pin.IRQ_RISING, acttime=500)
 # a = Pin(34, Pin.IN, handler=irq, debounce=0, trigger=Pin.IRQ_RISING, acttime=0)
+
+

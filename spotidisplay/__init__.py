@@ -3,7 +3,6 @@ from spotipy.objects import *
 
 
 class SpotiDisplay(object):
-
     def __init__(self, sp):
         self._sp = sp
         self.text = "Welcome to ODROID-GO \r\nSpotify Remote"
@@ -24,7 +23,9 @@ class SpotiDisplay(object):
 
     def _render_new_album_art(self):
         GO.lcd.clear()
-        GO.lcd.image(GO.lcd.RIGHT, GO.lcd.BOTTOM, 'image.jpg', 2, GO.lcd.JPG)
+        GO.lcd.image(GO.lcd.RIGHT, GO.lcd.BOTTOM,
+                     self.track.album.images[0].path,
+                     2, GO.lcd.JPG)
         self._displaying_art = True
 
     def _update_song_details(self, trk):

@@ -1,3 +1,4 @@
+import uos
 from . import urequests
 
 
@@ -47,22 +48,34 @@ class Artist(Item):
 
 
 class Image(object):
-    def __init__(self, height=0, width=0, url=None):
+    def __init__(self, height=0, width=0, url=None, album_id=None):
         self.height = height
         self.width = width
         self.url = url
+        self.path = '/sd/spotify_cache/%s' % album_id
 
     def download(self):
+        if self.exists():
+            return True
+
         if self.url:
             try:
                 s = urequests.request('GET', self.url)
-                with open('image.jpg', 'wb') as fh:
+                with open(self.path, 'wb') as fh:
                     fh.write(s.content)
                     s.close()
                 return True
             except Exception:
                 print("Failed to download %s" % self.url)
         return False
+
+    def exists(self):
+        try:
+            uos.stat(self.path)
+            return True
+        except Exception:
+            return False
+
 
 
 class Album(Item):
