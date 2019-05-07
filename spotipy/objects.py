@@ -82,7 +82,7 @@ class Album(Item):
     def __init__(self, **kwargs):
         Item.__init__(self, **kwargs)
         self.artists = [Artist(**art) for art in kwargs['artists']]
-        self.images = [Image(**img) for img in kwargs['images']]
+        self.images = [Image(**img, album_id=self.id) for img in kwargs['images']]
         self.name = kwargs['name']
 
 
