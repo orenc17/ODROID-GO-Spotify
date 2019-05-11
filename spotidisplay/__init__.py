@@ -53,6 +53,30 @@ class SpotiDisplay(object):
                     self._update_song_details(new_track)
                 self.track = new_track
             else:
-                if not self._displaying_art and self.track.album.images[0].download():
+                if not self._displaying_art and \
+                        self.track.album.images[0].download():
                     self._render_new_album_art(self.track)
 
+    def next_track(self):
+        if self.device:
+            self.device.next_track(self._sp)
+
+    def prev_track(self):
+        if self.device:
+            self.device.previous_track(self._sp)
+
+    def pause(self):
+        if self.device:
+            self._sp.pause_playback(self.device.id)
+
+    def play(self):
+        if self.device:
+            self._sp.start_playback(self.device.id)
+
+    def vol_up(self):
+        if self.device:
+            self.device.vol_increase(self._sp)
+
+    def vol_down(self):
+        if self.device:
+            self.device.vol_decrease(self._sp)

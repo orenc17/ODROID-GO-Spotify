@@ -6,6 +6,8 @@ import spotipy
 import utime
 import ujson
 import uos
+import uasyncio as asyncio
+from uasyncio.queues import Queue
 from odroid_go import GO
 from spotidisplay import SpotiDisplay
 
@@ -15,6 +17,14 @@ SPOTIFY_CLIENT_ID = ''
 SPOTIPY_CLIENT_SECRET = ''
 SPOTIPY_REDIRECT_URI = 'http://esp8266.local/TEST'
 SPOTIFY_SCOPE = 'streaming user-read-playback-state user-read-currently-playing user-modify-playback-state'
+
+COMMAND_CONTROL_PLAY = 1
+COMMAND_CONTROL_PAUSE = 2
+COMMAND_CONTROL_NEXT = 3
+COMMAND_CONTROL_PREV = 4
+COMMAND_VOL_UP = 5
+COMMAND_VOL_DOWN = 6
+COMMAND_UPDATE = 7
 
 
 def do_connect():
@@ -54,61 +64,82 @@ def setup():
     init_sd()
     do_connect()
     sync_time()
-    token, cred_manager = spotipy.prompt_for_user_token(client_id=SPOTIFY_CLIENT_ID,
-                                                        client_secret=SPOTIPY_CLIENT_SECRET,
-                                                        redirect_uri=SPOTIPY_REDIRECT_URI,
-                                                        scope=SPOTIFY_SCOPE)
+    token, cred_manager = spotipy.prompt_for_user_token(
+        client_id=SPOTIFY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri=SPOTIPY_REDIRECT_URI,
+        scope=SPOTIFY_SCOPE
+    )
 
     assert token
     assert cred_manager
     return spotipy.Spotify(client_credentials_manager=cred_manager)
 
 
-def main(sp):
-    display = SpotiDisplay(sp)
-    last_update_time = utime.ticks_ms()
-
+async def controls_thread(q):
     while True:
-        utime.sleep_ms(500)
+        await asyncio.sleep_ms(500)
         GO.update()
-        if display.device:
-            if GO.btn_joy_y.was_axis_pressed() == 2:
-                # print('pressed up')
-                display.device.vol_increase(sp)
-                continue
-            if GO.btn_joy_y.was_axis_pressed() == 1:
-                # print('pressed down')
-                display.device.vol_decrease(sp)
-                continue
-            if GO.btn_joy_x.was_axis_pressed() == 2:
-                # print('pressed right')
-                display.device.previous_track(sp)
-                display.update()
-                continue
-            if GO.btn_joy_x.was_axis_pressed() == 1:
-                # print('pressed left')
-                display.device.next_track(sp)
-                display.update()
-                continue
-            if GO.btn_a.was_pressed() == 1:
-                sp.pause_playback(display.device.id)
-                continue
-            if GO.btn_b.was_pressed() == 1:
-                sp.start_playback(display.device.id)
-                display.update()
-                continue
+        if GO.btn_joy_y.was_axis_pressed() == 2:
+            # print('pressed up')
+            await q.put(COMMAND_VOL_UP)
+            continue
+        if GO.btn_joy_y.was_axis_pressed() == 1:
+            # print('pressed down')
+            await q.put(COMMAND_VOL_DOWN)
+            continue
+        if GO.btn_joy_x.was_axis_pressed() == 2:
+            # print('pressed right')
+            await q.put(COMMAND_CONTROL_PREV)
+            await q.put(COMMAND_UPDATE)
+            continue
+        if GO.btn_joy_x.was_axis_pressed() == 1:
+            # print('pressed left')
+            await q.put(COMMAND_CONTROL_NEXT)
+            await q.put(COMMAND_UPDATE)
+            continue
+        if GO.btn_a.was_pressed() == 1:
+            await q.put(COMMAND_CONTROL_PAUSE)
+            continue
+        if GO.btn_b.was_pressed() == 1:
+            await q.put(COMMAND_CONTROL_PLAY)
+            await q.put(COMMAND_UPDATE)
+            continue
 
-        if utime.ticks_ms() - last_update_time > 5000:
-            last_update_time = utime.ticks_ms()
+
+async def update_periodically(q):
+    while True:
+        await asyncio.sleep_ms(5000)
+        await q.put(COMMAND_UPDATE)
+
+
+async def spotify_requests_handler(q):
+    while True:
+        result = await(q.get())
+        if result == COMMAND_CONTROL_PLAY:
+            display.play()
+        elif result == COMMAND_CONTROL_PAUSE:
+            display.pause()
+        elif result == COMMAND_CONTROL_NEXT:
+            display.next_track()
+        elif result == COMMAND_CONTROL_PREV:
+            display.prev_track()
+        elif result == COMMAND_VOL_UP:
+            display.vol_up()
+        elif result == COMMAND_VOL_DOWN:
+            display.vol_down()
+        elif result == COMMAND_UPDATE:
             display.update()
 
 
-if __name__ == "__main__":
-    obj = setup()
-    main(obj)
+sp = setup()
+display = SpotiDisplay(sp)
 
-# Setup button
-# a = Pin(32, Pin.IN, Pin.PULL_UP, handler=irq, debounce=500, trigger=Pin.IRQ_RISING, acttime=500)
-# a = Pin(34, Pin.IN, handler=irq, debounce=0, trigger=Pin.IRQ_RISING, acttime=0)
+UIq = Queue()
+Engineq = Queue()
 
-
+loop = asyncio.get_event_loop()
+loop.create_task(spotify_requests_handler(Engineq))
+loop.create_task(update_periodically(Engineq))
+loop.create_task(controls_thread(Engineq))
+loop.run_forever()
