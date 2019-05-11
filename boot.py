@@ -78,7 +78,7 @@ def setup():
 
 async def controls_thread(q):
     while True:
-        await asyncio.sleep_ms(500)
+        await asyncio.sleep_ms(250)
         GO.update()
         if GO.btn_joy_y.was_axis_pressed() == 2:
             # print('pressed up')
@@ -109,8 +109,8 @@ async def controls_thread(q):
 
 async def update_periodically(q):
     while True:
-        await asyncio.sleep_ms(5000)
         await q.put(COMMAND_UPDATE)
+        await asyncio.sleep_ms(5000)
 
 
 async def spotify_requests_handler(q):
@@ -135,7 +135,6 @@ async def spotify_requests_handler(q):
 sp = setup()
 display = SpotiDisplay(sp)
 
-UIq = Queue()
 Engineq = Queue()
 
 loop = asyncio.get_event_loop()
