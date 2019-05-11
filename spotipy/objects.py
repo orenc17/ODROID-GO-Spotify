@@ -54,16 +54,15 @@ class Image(object):
         self.url = url
         self.path = '/sd/spotify_cache/%s' % album_id
 
-    def download(self):
-        if self.exists():
-            return True
-
+    def download(self, cb):
         if self.url:
             try:
                 s = urequests.request('GET', self.url)
                 with open(self.path, 'wb') as fh:
                     fh.write(s.content)
                     s.close()
+                if cb:
+                    cb(self.path)
                 return True
             except Exception:
                 print("Failed to download %s" % self.url)
@@ -75,7 +74,6 @@ class Image(object):
             return True
         except Exception:
             return False
-
 
 
 class Album(Item):
@@ -94,7 +92,16 @@ class Track(Item):
         self.duration = kwargs['duration_ms']
         self.name = kwargs['name']
 
+    @staticmethod
+    def printable_str(string):
+        if len(string) > 30:
+            return string[:27] + "..."
+        return string
+
     @property
     def display_str(self):
-        return "{}\r\n\r\n{}\r\n\r\n{}".format(
-            self.artists[0].name, self.album.name, self.name)
+        return "{}\n\n{}\n\n{}".format(
+            self.printable_str(self.artists[0].name),
+            self.printable_str(self.album.name),
+            self.printable_str(self.name)
+        )
